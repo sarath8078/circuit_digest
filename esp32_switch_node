@@ -1,0 +1,79 @@
+#include <WiFi.h>
+#include <esp_now.h>
+#include <Servo.h>
+
+// Define servo motors
+const int servoPin1 = 13; // GPIO13
+const int servoPin2 = 12; // GPIO12
+Servo servo1;
+Servo servo2;
+
+// Define data structure for incoming messages
+typedef struct {
+  int loadId;
+  char command[10];
+} Message;
+
+// Callback function to handle incoming ESP-NOW messages
+void onDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  Message message;
+  memcpy(&message, incomingData, sizeof(message));
+  
+  Serial.print("Received data from: ");
+  Serial.print(mac[0], HEX); Serial.print(":");
+  Serial.print(mac[1], HEX); Serial.print(":");
+  Serial.print(mac[2], HEX); Serial.print(":");
+  Serial.print(mac[3], HEX); Serial.print(":");
+  Serial.print(mac[4], HEX); Serial.print(":");
+  Serial.println(mac[5], HEX);
+  
+  Serial.print("Load ID: ");
+  Serial.println(message.loadId);
+  Serial.print("Command: ");
+  Serial.println(message.command);
+
+  // Control loads based on load ID and command
+  if (message.loadId == 1) {
+    if (strcmp(message.command, "ON") == 0) {
+      servo1.write(90); // Adjust angle as needed
+    } else if (strcmp(message.command, "OFF") == 0) {
+      servo1.write(0); // Adjust angle as needed
+    }
+  } else if (message.loadId == 2) {
+    if (strcmp(message.command, "ON") == 0) {
+      servo2.write(90); // Adjust angle as needed
+    } else if (strcmp(message.command, "OFF") == 0) {
+      servo2.write(0); // Adjust angle as needed
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize servos
+  servo1.attach(servoPin1);
+  servo2.attach(servoPin2);
+  
+  // Set initial servo positions
+  servo1.write(0);
+  servo2.write(0);
+
+  // Initialize Wi-Fi
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(1000);
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("ESP-NOW initialization failed");
+    return;
+  }
+
+  // Register the data receive callback
+  esp_now_register_recv_cb(onDataRecv);
+}
+
+void loop() {
+  // Nothing to do here
+}
